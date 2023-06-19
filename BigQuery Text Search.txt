@@ -1,0 +1,34 @@
+WITH
+  conversations AS (
+    SELECT
+      Record_ID,
+      Timestamp,
+      Speaker,
+      Phrase,
+      ROW_NUMBER() OVER (PARTITION BY Record_ID ORDER BY Timestamp) AS phrase_number
+    FROM
+      `your_project_id.dataset.table`
+  ),
+  phrase_counts AS (
+    SELECT
+      Record_ID,
+      COUNTIF(Phrase IN ('how', 'hello')) AS greeting_count
+    FROM
+      conversations
+    WHERE
+      Phrase = 'you'
+      AND phrase_number - LAG(phrase_number, 1) OVER (PARTITION BY Record_ID ORDER BY Timestamp) <= 3
+    GROUP BY
+      Record_ID
+  )
+SELECT
+  c.*,
+  IFNULL(pc.greeting_count, 0) AS Greeting
+FROM
+  conversations c
+LEFT JOIN
+  phrase_counts pc
+ON
+  c.Record_ID = pc.Record_ID
+  AND c.Speaker = pc.Speaker
+  AND c.Phrase = 'you'
