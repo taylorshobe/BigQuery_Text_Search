@@ -13,11 +13,17 @@ WITH
     SELECT
       Record_ID,
       COUNTIF(Phrase IN ('how', 'hello')) AS greeting_count
-    FROM
-      conversations
+    FROM (
+      SELECT
+        Record_ID,
+        Phrase,
+        phrase_number - LAG(phrase_number, 1) OVER (PARTITION BY Record_ID ORDER BY Timestamp) AS phrase_diff
+      FROM
+        conversations
+    )
     WHERE
       Phrase = 'you'
-      AND phrase_number - LAG(phrase_number, 1) OVER (PARTITION BY Record_ID ORDER BY Timestamp) <= 3
+      AND phrase_diff <= 3
     GROUP BY
       Record_ID
   )
